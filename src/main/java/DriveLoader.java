@@ -23,17 +23,18 @@ import java.io.InputStreamReader;
 import java.util.*;
 
 
-public class DriveQuickstart {
+public class DriveLoader {
 
 
 
 
     /** Application name. */
     private static final String APPLICATION_NAME =
-        "C:\\Users\\{{user}}\\Documents\\csvfiles";
+        "Drive API Java Quickstart";
 
   private static final String FOLDER_FOR_CSV =
-        "Drive API Java Quickstart";
+        "C:\\Users\\dpogin\\Documents\\csvfiles";
+        
 
     /** Directory to store user credentials for this application. */
     private static final java.io.File DATA_STORE_DIR = new java.io.File(
@@ -73,7 +74,7 @@ public class DriveQuickstart {
     public static Credential authorize() throws IOException {
         // Load client secrets.
         InputStream in =
-            DriveQuickstart.class.getResourceAsStream("/client_secret.json");
+            DriveLoader.class.getResourceAsStream("/client_secret.json");
         GoogleClientSecrets clientSecrets =
             GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
 
@@ -158,7 +159,7 @@ public class DriveQuickstart {
           }
 
 
-        java.io.File containing  = new java.io.File(APPLICATION_NAME); 
+        java.io.File containing  = new java.io.File(FOLDER_FOR_CSV); 
         
         List<String> FilesToLoad =  listFilesForFolder(containing);
 
@@ -182,7 +183,7 @@ public class DriveQuickstart {
                 body.setParents(Arrays.asList(new ParentReference().setId(gkFolder.getId())));
             }
 
-            java.io.File fileContent = new java.io.File(APPLICATION_NAME + "\\" + FilesToLoad.get(i));
+            java.io.File fileContent = new java.io.File(FOLDER_FOR_CSV + "\\" + FilesToLoad.get(i));
 
             if(fileContent.exists()){
                 FileContent mediaContent = new FileContent("text/csv", fileContent);
