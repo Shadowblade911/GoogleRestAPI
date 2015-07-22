@@ -167,7 +167,6 @@ public class DriveLoader {
         for(int i = 0; i < FilesToLoad.size(); i++){
             File body = new File();
             body.setTitle(FilesToLoad.get(i));
-            body.setDescription("A test document");
             body.setMimeType("text/csv");
 
            /* Sounds like we don't actually need this.
@@ -190,10 +189,13 @@ public class DriveLoader {
 
                 boolean exists = false;
                 ChildInfo existing = new ChildInfo();
-                for(int x = 0; x < fNames.size(); i++){
-                    exists = body.getTitle().equals(fNames.get(i).getName());
+                for(int x = 0; x < fNames.size(); x++){
+                    System.out.println("Fname size: " + fNames.size());
+                    System.out.println("index: " +  x);
+                    System.out.println("Fname: " + fNames.get(x));
+                    exists = body.getTitle().equals(fNames.get(x).getName());
                     if(exists) {
-                      existing =  fNames.get(i); 
+                      existing =  fNames.get(x); 
                       break;  
                     } 
                 }
