@@ -10,7 +10,7 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.util.store.FileDataStoreFactory;
 import com.google.api.client.http.AbstractInputStreamContent;
 import com.google.api.client.http.FileContent;
-
+import java.io.FileInputStream;
 
 import com.google.api.services.drive.DriveScopes;
 import com.google.api.services.drive.model.*;
@@ -21,6 +21,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.*;
+import com.google.api.client.http.GenericUrl;
+import com.google.api.client.http.HttpResponse;
 
 
 public class DriveLoader {
@@ -32,9 +34,14 @@ public class DriveLoader {
     private static final String APPLICATION_NAME =
         "Drive API Java Quickstart";
 
-  private static final String FOLDER_FOR_CSV =
-        "C:\\Users\\dpogin\\Documents\\csvfiles";
-        
+    private static final String FOLDER_FOR_CSV =
+        "C:\\Users\\{{user}}\\Documents\\csvfiles";
+
+    private static final String FOLDER_FOR_DOWNLOADS =
+        "C:\\Users\\{{user}}\\Documents\\input";
+    
+    private static final String SECRET_LOCATION =
+        "C:\\Users\\{{user}}\\Documents\\clProject\\src\\main\\resources";
 
     /** Directory to store user credentials for this application. */
     private static final java.io.File DATA_STORE_DIR = new java.io.File(
@@ -74,7 +81,7 @@ public class DriveLoader {
     public static Credential authorize() throws IOException {
         // Load client secrets.
         InputStream in =
-            DriveLoader.class.getResourceAsStream("/client_secret.json");
+           new java.io.FileInputStream(SECRET_LOCATION + "/client_secret.json");
         GoogleClientSecrets clientSecrets =
             GoogleClientSecrets.load(JSON_FACTORY, new InputStreamReader(in));
 
@@ -118,6 +125,49 @@ public class DriveLoader {
         return ret;
     }
 
+     /**
+       * Download a file's content.
+       *
+       * @param service Drive API service instance.
+       * @param file Drive File instance.
+       * @return InputStream containing the file's content if successful,
+       *         {@code null} otherwise.
+       */
+      private static InputStream downloadFile(Drive service, File file) {
+        //Need to use this in order to get the download link, since the file was converted into Google's native format.
+        String exportUrl = file.getExportLinks().get("text/csv");
+        if (exportUrl != null) {
+          try {
+            HttpResponse resp =
+                service.getRequestFactory()
+                    .buildGetRequest(new GenericUrl(exportUrl))
+                        .execute();
+             return resp.getContent();
+          } catch (IOException e) {
+            e.printStackTrace();
+            return null;
+          }
+        } else {
+          // The file doesn't have any content stored on Drive.
+          return null;
+        }
+      }
+    
+    private static void writeFileFromInputStream(InputStream stream, String title) 
+      throws IOException {
+        java.io.File targetFile = new java.io.File(FOLDER_FOR_DOWNLOADS + "\\" + title  );
+        java.io.OutputStream outStream = new java.io.FileOutputStream(targetFile);
+     
+        byte[] buffer = new byte[8 * 1024];
+        int bytesRead;
+        while ((bytesRead = stream.read(buffer)) != -1) {
+            outStream.write(buffer, 0, bytesRead);
+        }
+        System.out.println("Downloaded file: " + title);
+        stream.close();
+        outStream.close();
+    }
+
     public static void main(String[] args) throws IOException {
         // Build a new authorized API client service.
         Drive service = getDriveService();
@@ -138,7 +188,7 @@ public class DriveLoader {
 
 
 
-
+        //Construct folder if not found. Should not be needed. 
         if(gkFolder == null){
             File folder = new File();
             folder.setMimeType("application/vnd.google-apps.folder");
@@ -149,14 +199,30 @@ public class DriveLoader {
             gkFolder = insert.execute();
           }
 
+
+
+          //Begin getting children setup
           ChildList  children = service.children().list(gkFolder.getId()).execute();
           java.util.List<ChildInfo> fNames = new ArrayList<ChildInfo>();
-          
+          //Getting children set up completed.
+
+          //For each child found in the child list
           for(ChildReference child : children.getItems()){
+            //Get Child from google
             File chil = service.files().get(child.getId()).execute();
-            System.out.println("Child name " + chil.getTitle());
+            //Save the title and the id of the child to a list. 
             fNames.add(new ChildInfo(chil.getId(), chil.getTitle()));
+          
+            //At the same time download the file for storage.
+            InputStream stream = downloadFile(service, chil);
+            if(stream != null){
+                writeFileFromInputStream(stream, chil.getTitle());
+            } else {
+                System.out.println("Stream was null: " + chil.getTitle());
+            }
           }
+ 
+        
 
 
         java.io.File containing  = new java.io.File(FOLDER_FOR_CSV); 
@@ -190,9 +256,6 @@ public class DriveLoader {
                 boolean exists = false;
                 ChildInfo existing = new ChildInfo();
                 for(int x = 0; x < fNames.size(); x++){
-                    System.out.println("Fname size: " + fNames.size());
-                    System.out.println("index: " +  x);
-                    System.out.println("Fname: " + fNames.get(x));
                     exists = body.getTitle().equals(fNames.get(x).getName());
                     if(exists) {
                       existing =  fNames.get(x); 
